@@ -1,3 +1,6 @@
+# Submitters:
+# Tal Rodgold & Binyamin Mor
+
 from enum import Enum
 import pandas as pd
 from scipy.stats import pearsonr
@@ -134,25 +137,24 @@ def manipulate_and_save(input_csv_path: str, output_txt_path: str):
     df = dummy_converter(df)    # convert necessary columns to dummy
 
     # calculate correlation and delete necessary columns
-    for column in [TRAIN.Pclass.value, TRAIN.Sex.value, TRAIN.Age.value, TRAIN.SibSp.value,
-                   TRAIN.Parch.value, TRAIN.Fare.value, TRAIN.Embarked.value]:
+    relevant_list = [TRAIN.Pclass.value, TRAIN.Sex.value, TRAIN.Age.value, TRAIN.SibSp.value,
+                   TRAIN.Parch.value, TRAIN.Fare.value, TRAIN.Embarked.value]
+    for column in relevant_list:
         value = calculate_correlation(df[TRAIN.Survived.value], df[column])
         if value < 0.015:
             df = df.drop(column, axis=1)
+            relevant_list.remove(column)
 
-        #all_data['Ticket']=data['Ticket'].astype('category').cat.codes
+    # calculate correlation between all columns
+    for column1 in relevant_list:
+        for column2 in relevant_list:
+            if column1 != column2:
+                value = calculate_correlation(df[column1], df[column2])
+                if value > 0.98:
+                    df = df.drop(column2, axis=1)
+                    relevant_list.remove(column2)
 
-
-
-
-
-
-    # Remove unnecessary columns
-    column_to_delete = ['SibSp', 'Parch', 'Cabin']
-    df = df.drop(column_to_delete, axis=1)
-    # Find duplicates in Ticket column and remove them
-    df = df.drop_duplicates(subset=['Ticket'], keep=False)
-    # Save the modified DataFrame to a TXT file
+    # save manipulated data to new file
     df.to_csv(output_txt_path, sep='\t', index=False)
 
 
