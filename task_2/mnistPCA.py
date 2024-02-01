@@ -1,78 +1,49 @@
+# Binyamin Mor - 317510485
+# Tal Rodgold - 318162344
+
 import PCA
 import knn
 
+# using PCA on mnisit dataset
 
-#using PCA on mnisit dataset
+# Read MNIST dataset
+mnist_data, mnist_labels = PCA.file2arr('digits-testing.txt', 30)
 
-for dim in range(5,35,5):
+for dim in range(5, 35, 5):
 
+    print("dim = ", dim, "\n")
     # Apply PCA
-    pca = PCA(n_components=dim)
-    X_train_pca = pca.fit_transform(X_train)
-    X_test_pca = pca.transform(X_test)
+    PCA.pcaDS('digits-training.txt', 10000, 'training_pca', dim)
 
+    maxAcc = 0
+    maxK = 0
 
-    maxAcc=0
-    maxK=0
+    # We will check by 5 nearest neighbors until 8 nearest neighbors
+    for k in range(5, 9):
+        print("-------")
+        print("k = ", k, "\n")
 
-    for k in range(5,9):
+        acc = 0
+        # Go over all the rows
+        for j in range(30):
 
-        # Train k-NN classifier
-        knn_classifier = KNeighborsClassifier(n_neighbors=k)
-        knn_classifier.fit(X_train_pca, y_train)
+            data_testing_pca_line = PCA.pca_instance(mnist_data[j], 'training_pca')
+            #Apply KNN
+            result = knn.knn(k, 'training_pca.ds', data_testing_pca_line)
 
-        # Make predictions on the test set
-        y_pred = knn_classifier.predict(X_test_pca)
+            print("digit: ", mnist_labels[j], ", knn= ", result)
 
-        # Evaluate accuracy
-        accuracy = accuracy_score(y_test, y_pred)
+            if (result == mnist_labels[j]):
+                acc += 1
 
-        # Update max accuracy and corresponding k
-        if accuracy > maxAcc:
+        accuracy = acc / 30
+        print("\naccuracy = ", accuracy, "\n")
+
+        # Find the most accurate K
+        if (accuracy > maxAcc):
             maxAcc = accuracy
             maxK = k
-        print("dim =", dim, " The best k is:", maxK, " The accuracy is:", maxAcc)
 
-        # Run k-NN on the first 30 lines in testing.txt 6 times
-        for j in range(6):
-            # Load the first 30 lines of testing.txt
-            testing_data = np.loadtxt('testing.txt', delimiter=',', max_rows=30)
-
-            # Separate features and labels
-            X_test_custom = testing_data[:, :-1]
-            y_test_custom = testing_data[:, -1]
-
-            # Apply PCA to custom test data
-            X_test_custom_pca = pca.transform(X_test_custom)
-
-            # Train k-NN classifier
-            knn_classifier_custom = KNeighborsClassifier(n_neighbors=maxK)
-            knn_classifier_custom.fit(X_train_pca, y_train)
-
-            # Make predictions on custom test set
-            y_pred_custom = knn_classifier_custom.predict(X_test_custom_pca)
-
-            # Evaluate accuracy on custom test set
-            accuracy_custom = accuracy_score(y_test_custom, y_pred_custom)
-
-            print("Run", j + 1, "Accuracy on custom test set:", accuracy_custom)
-
-
-    for j in range(30):
-        # Make predictions on custom test set
-        y_pred_custom = knn_classifier_custom.predict(X_test_custom_pca)
-
-        # Evaluate accuracy on custom test set
-        accuracy_custom = accuracy_score(y_test_custom, y_pred_custom)
-
-        print("\nAccuracy on custom test set:", accuracy_custom)
-        print("True labels:", y_test_custom.astype(int))
-        print("Predicted labels:", y_pred_custom.astype(int))
-
-
-
-
-    
-    print("dim= ",dim," The best k is: ",maxK," The accuracy is: ",maxAcc)
-    
+    print("dim = ", dim, " The best k is: ", maxK, " The accuracy is: ", maxAcc)
+    print("*********************************\n")
 

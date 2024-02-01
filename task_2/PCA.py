@@ -1,3 +1,6 @@
+# Binyamin Mor - 317510485
+# Tal Rodgold - 318162344
+
 import numpy as np
 
 mean_vector = None
@@ -8,13 +11,10 @@ def standardize_data(X):
     global mean_vector
     global std_vector
 
-    # Calculate mean and standard deviation along each feature (column)
-    mean_vector = np.mean(X, axis=0)
-    std_vector = np.std(X, axis=0)
+    mean_vector = np.mean(X,axis=0)
+    std_vector = np.std(X, axis=0) + 1e-8
 
-    # Standardize the data
     X_std = (X - mean_vector) / std_vector
-
     return X_std
 
 # Step 2: Compute the covariance matrix
@@ -35,24 +35,15 @@ def select_components(eigenvectors, num_components):
 def project_data(X_std, eigenvectors_selected):
     return np.dot(X_std, eigenvectors_selected)
 
-#Combining all 5 steps. Returns the dataset and 3 vectors/matrice 
-def pca (X, num_components):
+# Combining all 5 steps. Returns the dataset and 3 vectors/matrice
+def pca(X, num_components):
     global mean_vector
     global std_vector
 
-    # Step 1: Standardize the dataset
     X_std = standardize_data(X)
-
-    # Step 2: Compute the covariance matrix
     cov_matrix = compute_covariance_matrix(X_std)
-
-    # Step 3: Compute eigenvalues and eigenvectors
     eigenvalues, eigenvectors = compute_eigen(cov_matrix)
-
-    # Step 4: Select principal components
     eigenvectors_selected = select_components(eigenvectors, num_components)
-
-    # Step 5: Project data onto lower-dimensional linear subspace
     X_pca = project_data(X_std, eigenvectors_selected)
 
     return X_pca, mean_vector, std_vector, eigenvectors_selected
