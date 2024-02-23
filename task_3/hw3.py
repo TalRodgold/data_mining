@@ -12,25 +12,34 @@ from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import accuracy_score, f1_score, recall_score, precision_score, roc_auc_score, roc_curve, auc
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plotlib
 from plotly.graph_objects import Figure
+
+
+class Classifiers(Enum):
+    """
+    Enum class for all the classifiers from the sklearn library.
+    """
+    RandomForestClassifier = RandomForestClassifier
+    DecisionTreeClassifier = DecisionTreeClassifier
+    KNeighborsClassifier = KNeighborsClassifier
+    AdaBoostClassifier = AdaBoostClassifier
+    LogisticRegression = LogisticRegression
+    GaussianNB = GaussianNB
+    SVC = SVC
 
 
 class TITANIC(Enum):
     """
     Enum class for all the strings related to the titanic.csv file
     """
-    FilePath = 'task_3/titanic_preprocessed_HW3.csv'
+    FilePath = r"titanic_preprocessed HW3.csv"
     Survived = 'Survived'
     DecisionFunction = 'decision_function'
     Scores = ['accuracy', 'f1', 'recall', 'precision', 'roc_auc']
-    Classifiers = [RandomForestClassifier,
-                   AdaBoostClassifier,
-                   LogisticRegression,
-                   KNeighborsClassifier,
-                   DecisionTreeClassifier,
-                   GaussianNB,
-                   SVC]
+    FP = 'False Positive'
+    TP = 'True Positive'
+    ROC = 'ROC'
 
 
 def compute_evaluation_scores(y_test: pd.Series, y_pred: pd.Series) -> list:
@@ -51,7 +60,7 @@ def compute_evaluation_scores(y_test: pd.Series, y_pred: pd.Series) -> list:
     return evaluation_scores
 
 
-def train_and_evaluate_classifier(classifier, x_train: pd.DataFrame, x_test: pd.DataFrame, y_train: pd.Series, y_test: pd.Series) -> list:
+def train_and_evaluate_classifier(classifier, x_train: pd.DataFrame, x_test: pd.DataFrame, y_train: pd.Series, y_test: pd.Series) -> tuple:
     """
     Trains the classifier, predicts on test data, and computes evaluation scores.
     :param classifier: The classifier object.
@@ -66,7 +75,7 @@ def train_and_evaluate_classifier(classifier, x_train: pd.DataFrame, x_test: pd.
     model.fit(x_train, y_train)
     prediction = model.predict(x_test)
     evaluation_scores = compute_evaluation_scores(y_test, prediction)
-    return evaluation_scores
+    return model, evaluation_scores
 
 
 def plot_evaluation_scores(score_classifiers: dict):
@@ -74,36 +83,33 @@ def plot_evaluation_scores(score_classifiers: dict):
     Plots evaluation scores for each classifier.
     :param score_classifiers:  A dictionary containing evaluation scores for each classifier.
     """
-    for index, score_name in enumerate(TITANIC.Scores.value()):
+    for index, name in enumerate(TITANIC.Scores.value):
         figure = Figure()
-        for classifier_name, score in score_classifiers.items():
-            classifier_name = classifier_name.replace("_", " ").lower()
+        for cla_name, score in score_classifiers.items():
             score_value = score[index]
-            name = score_name + " for " + classifier_name
-            figure.add_bar(name=name, x=[classifier_name], y=[score_value], text=str(round(score_value, 3)))
-        figure.update(layout_title_text=score_name)
-        figure.write_image(f"{score_name}.png", format="png", engine="kaleido")
+            name = f"{name} - {cla_name}"
+            figure.add_bar(name=name, x=[cla_name], y=[score_value], text=str(round(score_value, 3)))
+        figure.update(layout_title_text=name)
+        figure.write_image(f"{name}.png", format="png", engine="kaleido")
 
 
-def plot_combined_roc_curves(decision_function_values: dict, y_test: pd.Series):
+def plot_roc(decision_function_values: dict, y_test: pd.Series):
     """
     Plots combined ROC curves for all classifiers.
     :param decision_function_values:  A dictionary containing decision function values for each classifier.
     :param y_test: The testing labels.
     """
-    plt.figure(figsize=(10, 8))
-    for classifier_name, probas in decision_function_values.items():
-        fpr, tpr, _ = roc_curve(y_test, probas)
+    for cla_name, proof in decision_function_values.items():
+        fpr, tpr, _ = roc_curve(y_test, proof)
         roc_auc = auc(fpr, tpr)
-        plt.plot(fpr, tpr, label=f'{classifier_name} (AUC = {roc_auc:.2f})')
+        plotlib.plot(fpr, tpr, label=f'{cla_name}, AUC = {roc_auc:.2f}')
 
-    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('Combined ROC Curves')
-    plt.legend(loc='lower right')
-    plt.savefig("combined_roc_curves.png")
-    plt.show()
+    plotlib.plot([0, 1], [0, 1], lw=2)
+    plotlib.legend(loc='lower right')
+    plotlib.xlabel(TITANIC.FP.value)
+    plotlib.ylabel(TITANIC.TP.value)
+    plotlib.savefig(f"{TITANIC.ROC.value}.png")
+    plotlib.show()
 
 
 def main():
@@ -122,21 +128,20 @@ def main():
     decision_function_values = {}
 
     # Loop through each classifier, train, evaluate, and print results
-    for classifier in  TITANIC.Classifiers.value:
-        evaluation_scores = train_and_evaluate_classifier(classifier, x_train, x_test, y_train, y_test)
+    for classifier in Classifiers:
+        model, evaluation_scores = train_and_evaluate_classifier(classifier, x_train, x_test, y_train, y_test)
         score_classifiers[classifier.name] = evaluation_scores
 
-        model = classifier.value()
         if hasattr(model, TITANIC.DecisionFunction.value):
-            probas = model.decision_function(x_test)
+            proof = model.decision_function(x_test)
         else:
-            probas = model.predict_proba(x_test)[:, 1]
+            proof = model.predict_proba(x_test)[:, 1]
 
-        decision_function_values[classifier.name] = probas
+        decision_function_values[classifier.name] = proof
         print(f"{classifier.name}: {evaluation_scores}")
 
     plot_evaluation_scores(score_classifiers)
-    plot_combined_roc_curves(decision_function_values, y_test)
+    plot_roc(decision_function_values, y_test)
 
 
 if __name__ == "__main__":
