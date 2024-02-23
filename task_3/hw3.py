@@ -33,7 +33,7 @@ class TITANIC(Enum):
     """
     Enum class for all the strings related to the titanic.csv file
     """
-    FilePath = r"titanic_preprocessed HW3.csv"
+    FilePath = r"/Users/talr/PycharmProjects/temporary/task_3/titanic_preprocessed_HW3.csv"
     Survived = 'Survived'
     DecisionFunction = 'decision_function'
     Scores = ['accuracy', 'f1', 'recall', 'precision', 'roc_auc']
@@ -44,8 +44,7 @@ class TITANIC(Enum):
 
 def compute_evaluation_scores(y_test: pd.Series, y_pred: pd.Series) -> list:
     """
-    Computes a list of evaluation scores for a given prediction.
-    Metrics include accuracy, f1-score, recall, precision, and ROC AUC score.
+    This function will compute a list of evaluation scores for given prediction.
     :param y_test: The actual labels.
     :param y_pred: The predicted labels.
     :return: A list of evaluation scores.
@@ -62,7 +61,7 @@ def compute_evaluation_scores(y_test: pd.Series, y_pred: pd.Series) -> list:
 
 def train_and_evaluate_classifier(classifier, x_train: pd.DataFrame, x_test: pd.DataFrame, y_train: pd.Series, y_test: pd.Series) -> tuple:
     """
-    Trains the classifier, predicts on test data, and computes evaluation scores.
+    This function trains the classifier, predicts on test data, and computes evaluation scores.
     :param classifier: The classifier object.
     :param x_train: The training features.
     :param x_test: The testing features.
@@ -78,24 +77,24 @@ def train_and_evaluate_classifier(classifier, x_train: pd.DataFrame, x_test: pd.
     return model, evaluation_scores
 
 
-def plot_evaluation_scores(score_classifiers: dict):
+def plotly_evaluation_scores(score_classifiers: dict):
     """
-    Plots evaluation scores for each classifier.
+    This function Plots evaluation scores for each classifier.
     :param score_classifiers:  A dictionary containing evaluation scores for each classifier.
     """
-    for index, name in enumerate(TITANIC.Scores.value):
+    for index, score_name in enumerate(TITANIC.Scores.value):
         figure = Figure()
-        for cla_name, score in score_classifiers.items():
+        for classifier_name, score in score_classifiers.items():
+            name = f"{score_name} - {classifier_name}"
             score_value = score[index]
-            name = f"{name} - {cla_name}"
-            figure.add_bar(name=name, x=[cla_name], y=[score_value], text=str(round(score_value, 3)))
-        figure.update(layout_title_text=name)
-        figure.write_image(f"{name}.png", format="png", engine="kaleido")
+            figure.add_bar(name=name, x=[classifier_name], y=[score_value], text=str(round(score_value, 3)))
+        figure.update(layout_title_text=score_name)
+        figure.write_image(f"{score_name}.png", format="png", engine="kaleido")
 
 
-def plot_roc(decision_function_values: dict, y_test: pd.Series):
+def plotly_roc(decision_function_values: dict, y_test: pd.Series):
     """
-    Plots combined ROC curves for all classifiers.
+    This function plots combined ROC curves for all classifiers.
     :param decision_function_values:  A dictionary containing decision function values for each classifier.
     :param y_test: The testing labels.
     """
@@ -113,35 +112,32 @@ def plot_roc(decision_function_values: dict, y_test: pd.Series):
 
 
 def main():
-    # Read the Titanic dataset (provide the correct file path)
+    # open and read data from file
     df = pd.read_csv(TITANIC.FilePath.value)
 
-    # Split the data into training and testing sets
+    # split data to training and testing sets
     target = df[TITANIC.Survived.value]
     data = df.drop(TITANIC.Survived.value, axis=1)
     x_train, x_test, y_train, y_test = train_test_split(data, target, test_size=0.1, random_state=1)
 
-    # Dictionary to store evaluation scores for each classifier
-    score_classifiers = {}
+    # set dicts
+    df_values_dict = dict()
+    score_classifiers_dict = dict()
 
-    # Dictionary to store decision function values for each classifier
-    decision_function_values = {}
-
-    # Loop through each classifier, train, evaluate, and print results
+    # iterate all classifiers
     for classifier in Classifiers:
         model, evaluation_scores = train_and_evaluate_classifier(classifier, x_train, x_test, y_train, y_test)
-        score_classifiers[classifier.name] = evaluation_scores
-
+        score_classifiers_dict[classifier.name] = evaluation_scores
         if hasattr(model, TITANIC.DecisionFunction.value):
             proof = model.decision_function(x_test)
         else:
             proof = model.predict_proba(x_test)[:, 1]
-
-        decision_function_values[classifier.name] = proof
+        df_values_dict[classifier.name] = proof
         print(f"{classifier.name}: {evaluation_scores}")
 
-    plot_evaluation_scores(score_classifiers)
-    plot_roc(decision_function_values, y_test)
+    # creat graphs
+    plotly_evaluation_scores(score_classifiers_dict)
+    plotly_roc(df_values_dict, y_test)
 
 
 if __name__ == "__main__":
